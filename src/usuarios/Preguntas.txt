@@ -1,0 +1,4 @@
+Nombre de primera mascota
+Nombre de ciudad favorita
+Apodo con el que te llaman
+Cancion preferida
