@@ -124,6 +124,7 @@ public class ClientHandler extends Thread {
 					switch (opc) {
 					case 2:
 						os.writeObject(new Mensaje(us, "OK"));
+						bd.actualizarBD(us, "src/folders/"+us.getNombre());
 						ta.append("Usuario logeado correctamente \n");
 						  ta.append("Bienvenido" + us.getNombre()
 					      + " to our chat room.\nTo leave enter /quit in a new line.");

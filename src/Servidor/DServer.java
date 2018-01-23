@@ -29,6 +29,8 @@ import java.awt.BorderLayout;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Caret;
+import javax.swing.text.DefaultCaret;
 
 import datos.BD;
 import java.awt.Font;
@@ -57,13 +59,12 @@ public class DServer extends JFrame{
 	public static int puertoDef = 1050;
 	
 	
-	JTextArea textArea;
-	
-	JPanel panel;
-	
+	private JTextArea textArea;
+
+	private JPanel panel;
 	
 	public static final int MaxClientes = 5; 														//Numero maximo de clientes conectados a la vez
-	public static final ClientHandler[] hilosClientes = new ClientHandler[MaxClientes]; 							//Array de hilos de los clientes
+	private ClientHandler[] hilosClientes = new ClientHandler[MaxClientes]; 							//Array de hilos de los clientes
 	
 
 	public void inicializarVentana () {
@@ -77,6 +78,9 @@ public class DServer extends JFrame{
 		
 		textArea.setForeground(Color.WHITE);
 		textArea.setCaretColor(Color.WHITE);
+		
+		 ((DefaultCaret)textArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		
 		textArea.setBackground(Color.BLACK);
 		textArea.setLineWrap(true);
 		textArea.setFont(new Font("Verdana", Font.BOLD, 18));

@@ -1,11 +1,13 @@
 package datos;
 
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 
 import javax.swing.JTextField;
 
@@ -100,6 +102,9 @@ public class BD {
 		
 		try {
 			stmt.executeUpdate(query);
+			//------------------------------------>Crear la carpeta pertinente del usuario
+			new File("./src/folders/"+us.getNombre()).mkdir();
+//------------------------------------->
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -107,13 +112,9 @@ public class BD {
 	}
 	
 	/**
-	 *
-	 *
-	 *  devuelve @param seleccion con el dato de la columna que le pidamos.
-	 * este metodo en concreto lo usamos para obtener el integer que representa
-	 * la seleccion de seguridad del usuario de forma segura
-	 *  
-	 * 
+
+	 *  devuelve @param Object seleccion con el dato de la columna que le pidamos.
+
 	 */
 	
 	public Object obtenerSeleccion (String nom,String colum) {
@@ -207,4 +208,53 @@ public class BD {
 		}
 	}
 	
+	public void actualizarArchivo (Usuario us,File f) {
+		
+		String query1 = "SELECT * FROM Archivos WHERE Propietario='"+us.getNombre()+"'AND Nombre='"+f.getName()+"' AND Ruta='"+f.getPath()+"'";
+		
+		
+		try {
+			ResultSet rs = stmt.executeQuery(query1);
+		
+		
+		String query2 = "INSERT INTO Archivos(Nombre,Ruta,Propietario) VALUES('"
+				+f.getName()+"','"
+				+f.getPath()+"','"
+				+us.getNombre()+
+				"')";
+		
+		
+			if(!rs.next()) {
+			stmt.executeUpdate(query2);
+			System.out.println("Insercion exitosa");
+			}else {
+				System.out.println("Valor existente");
+			}
+		
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void actualizarBD(Usuario user,String root) {
+		File f = new File(root);
+		if(f.isDirectory()) {
+			System.out.println("Encontrado directorio: "+ f.getName());
+			for(File subfile: f.listFiles()) {
+				if(subfile.isDirectory() && subfile.listFiles().length>0) {
+					
+					actualizarBD(user,subfile.getPath());
+				}else {
+					actualizarArchivo(user, subfile);
+				
+					
+				}
+			}
+		}else {
+			//actualizarBD(user,f.getPath());
+			System.out.println("No es directorio "+ f.getPath());
+		}
+		
+	}
 }
