@@ -8,8 +8,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
+import javax.swing.JFrame;
 import javax.swing.JTextField;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 
 import excepciones.BaneadoException;
 import usuarios.Usuario;
@@ -23,10 +35,37 @@ public class BD {
 	private Connection con;
 	private static Statement stmt;
 	
+	//Atributos del tree dentro de la base
+	private static JTree tree;
+	private static DefaultMutableTreeNode raiz;
+	private static DefaultTreeModel modeloArbol;
 	
 	public BD(){
+		tree = new JTree();
+		
 		conectar();
 	}
+	
+	
+	public static DefaultMutableTreeNode getRaiz() {
+		return raiz;
+	}
+
+
+	public static void setRaiz(DefaultMutableTreeNode raiz) {
+		BD.raiz = raiz;
+		modeloArbol = new DefaultTreeModel( raiz );
+		tree.setModel( modeloArbol );
+	}
+	
+	
+	public static JTree getTree() {
+		System.out.println(tree.getModel().getRoot());
+		return tree;
+	}
+
+
+
 	/**
 	 * Metodo que crea una sentencia para acceder a la base de datos 
 	 */
@@ -208,7 +247,7 @@ public class BD {
 		}
 	}
 	
-	public void actualizarArchivo (Usuario us,File f) {
+	public static void actualizarArchivo (Usuario us,File f) {
 		
 		String query1 = "SELECT * FROM Archivos WHERE Propietario='"+us.getNombre()+"'AND Nombre='"+f.getName()+"' AND Ruta='"+f.getPath()+"'";
 		
@@ -237,12 +276,94 @@ public class BD {
 		}
 	}
 	
+	
+
+	
+	// CODIGO DEL TREE
+
+	public static DefaultMutableTreeNode anyadeNodoHijo( String texto, DefaultMutableTreeNode padre ,Usuario us) {
+		System.out.println("Anyadiendo nodo hijo " +texto);
+		DefaultMutableTreeNode nuevo = new DefaultMutableTreeNode( texto );
+		try {
+			SwingUtilities.invokeAndWait( new Runnable() {
+				@Override
+				public void run() {
+					if (padre==null) {
+						raiz.add( nuevo );
+						modeloArbol.nodesWereInserted( raiz, new int[] { raiz.getChildCount()-1 } );
+					} else {
+						padre.add( nuevo );
+						modeloArbol.nodesWereInserted( padre, new int[] { padre.getChildCount()-1 } );
+					}
+					//tree.setES( new TreePath(nuevo.getPath()), true );
+					/*
+					TreePath[] tp = (TreePath[]) nuevo.getPath();
+					String camino = tp.toString().replaceAll("\\]| |\\[|", "").replaceAll(",", File.separator);
+					File f = new File(camino);	
+					actualizarArchivo(us,f);
+					*/
+				}
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return nuevo;
+	}
+	
+	// ---------------------------------
+	// Recorrido de ficheros
+	// ---------------------------------
+	
+	/** Visualiza el espacio en disco ocupado por cada carpeta del directorio indicado
+	 * @param dirIni	Directorio a explorar. Si no es una carpeta correcta el método no hace nada.
+	 */
+	public static void generarJTree( String dirIni ,Usuario us) {
+		File ini = new File( dirIni );
+		if (!ini.exists() || !ini.isDirectory()) return;
+		recorridoUnidad( ini, 0, raiz ,us);
+		modeloArbol.nodeChanged( raiz );  // Lanza evento de modificación en el modelo
+	}
+
+	// Método recursivo
+	private static void recorridoUnidad( File dir, int nivel, DefaultMutableTreeNode padre ,Usuario us) {
+		if (dir==null) return;  // Caso base
+		DefaultMutableTreeNode nodoNuevo = null;
+		File[] files = null;
+		if (dir.isDirectory()) {  // Tratamiento recursivo de directorio
+			files = dir.listFiles();
+			nodoNuevo = anyadeNodoHijo( dir.getName(), padre ,us);
+			if (files!=null) {
+				ArrayList<File> al = new ArrayList<>( Arrays.asList( files ));
+				final DefaultMutableTreeNode nodoEnCurso = nodoNuevo;
+				for (File o2 : al) {
+					recorridoUnidad( o2, nivel+1, nodoNuevo ,us);
+					SwingUtilities.invokeLater( new Runnable() {
+						@Override
+						public void run() {
+							modeloArbol.nodeChanged( nodoEnCurso );  // Lanza evento de modificación en el modelo
+						}
+					});
+				}
+			}
+		} else {  // Tratamiento de fichero
+			nodoNuevo = anyadeNodoHijo( dir.getName(), padre ,us);
+			final DefaultMutableTreeNode nodoEnCurso = nodoNuevo;
+			SwingUtilities.invokeLater( new Runnable() {
+				@Override
+				public void run() {
+					modeloArbol.nodeChanged( nodoEnCurso );  // Lanza evento de modificación en el modelo
+				}
+			});
+		}
+	}
+	
+	
 	public void actualizarBD(Usuario user,String root) {
 		File f = new File(root);
-		if(f.isDirectory()) {
+		if(!f.getName().contains(".")) {
 			System.out.println("Encontrado directorio: "+ f.getName());
 			for(File subfile: f.listFiles()) {
-				if(subfile.isDirectory() && subfile.listFiles().length>0) {
+				if(!subfile.getName().contains(".") && subfile.listFiles().length>0) {
 					
 					actualizarBD(user,subfile.getPath());
 				}else {
@@ -257,4 +378,5 @@ public class BD {
 		}
 		
 	}
+		
 }

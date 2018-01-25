@@ -52,7 +52,6 @@ public class CambioHandler implements Runnable{
 			try {
 				os.writeObject(new Integer (seleccion));
 				
-				int ok =0;
 				
 				
 				msg= (Mensaje) is.readObject();	

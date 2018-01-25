@@ -9,6 +9,9 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 import javax.swing.JTextArea;
+import javax.swing.JTree;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 
 import datos.Mensaje;
 import datos.BD;
@@ -18,15 +21,7 @@ import usuarios.Usuario;
 import java.net.ServerSocket;
 
 
-/*
- * The chat client thread. This client thread opens the input and the output
- * streams for a particular client, ask the client's name, informs all the
- * clients connected to the server about the fact that a new client has joined
- * the chat room, and as long as it receive data, echos that data back to all
- * other clients. The thread broadcast the incoming messages to all clients and
- * routes the private message to the particular client. When a client leaves the
- * chat room this thread informs also all the clients about that and terminates.
- */
+
 public class ClientHandler extends Thread {
 
   private String clientName = null;
@@ -97,7 +92,7 @@ public class ClientHandler extends Thread {
 		Mensaje msg = null;
   		Usuario us=null;
   		int opc =0;
-		while(opc!=2) {
+		while(opc!=1) {
 		try {
 			synchronized(is) {
 			msg = (Mensaje) is.readObject();	
@@ -111,7 +106,7 @@ public class ClientHandler extends Thread {
 					ClientHandler.sleep(1500);
 				}
 
-				//msg = (Mensaje) is.readObject();		
+					
 				}
 			
 			//Lee el objeto del socket
@@ -124,15 +119,27 @@ public class ClientHandler extends Thread {
 					switch (opc) {
 					case 2:
 						os.writeObject(new Mensaje(us, "OK"));
-						bd.actualizarBD(us, "src/folders/"+us.getNombre());
-						ta.append("Usuario logeado correctamente \n");
-						  ta.append("Bienvenido" + us.getNombre()
-					      + " to our chat room.\nTo leave enter /quit in a new line.");
+						
+						BD.setRaiz(new DefaultMutableTreeNode("Archivos"));
+						 BD.generarJTree("src/folders/"+us.getNombre()+"/",us);
+						
+						 os.writeObject(BD.getTree().getModel());
+					
+						  ta.append("Usuario: " + us.getNombre()
+					      + " Logeado satsifactoriamente \n");
 						  
-						break;
-					default:
+						 AdminHandler ah = new AdminHandler(msg.getUs(), bd, ta, os, is);
+						 Thread adminThread = new Thread(ah);
+						 adminThread.start();
+						 while(adminThread.isAlive()) {
+							ClientHandler.sleep(1500);
+						 }
+						  opc=1;
+						  break;
+					case 0:
 						os.writeObject(new Mensaje(us, "ERR"));
 						ta.append("Proceso de login incorrecto del usuario "+ us.getNombre()+"\n");
+						break;
 					}
 			}
 			
@@ -154,6 +161,7 @@ public class ClientHandler extends Thread {
 					
 			}
 			
+			
 				
 			
 		} catch (ClassNotFoundException e) {
@@ -166,8 +174,9 @@ public class ClientHandler extends Thread {
   
 		  
 		ta.append("\n Cerrando hilo login"); 
+	
+		os.flush();
 		
-
 		  is.close();
 		os.close();
 		  
